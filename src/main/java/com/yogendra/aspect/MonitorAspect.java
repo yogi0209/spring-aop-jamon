@@ -32,7 +32,6 @@ public class MonitorAspect {
             return joinPoint.proceed();
         } finally {
             monitor.stop();
-            System.out.println(monitor);
             Counter.builder("http.requests.count")
                     .tag("uri", methodMonitor.uri())
                     .tag("method", methodMonitor.method())
