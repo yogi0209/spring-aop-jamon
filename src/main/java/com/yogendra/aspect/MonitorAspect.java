@@ -9,10 +9,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.reflect.MethodSignature;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
-
-import java.lang.reflect.Method;
 
 @Component
 @Aspect
@@ -27,16 +25,14 @@ public class MonitorAspect {
     }
 
 
-    @Around("@annotation(com.yogendra.annotation.MethodMonitor)")
-    public Object monitorMethodExecution(ProceedingJoinPoint joinPoint) throws Throwable {
-        MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-        Method method = methodSignature.getMethod();
-        MethodMonitor methodMonitor = method.getAnnotation(MethodMonitor.class);
+    @Around(value = "controllerMethod() && @annotation(methodMonitor)")
+    public Object monitorMethodExecution(ProceedingJoinPoint joinPoint, MethodMonitor methodMonitor) throws Throwable {
         Monitor monitor = monitorFactoryInterface.start(methodMonitor.name());
         try {
             return joinPoint.proceed();
         } finally {
             monitor.stop();
+            System.out.println(monitor);
             Counter.builder("http.requests.count")
                     .tag("uri", methodMonitor.uri())
                     .tag("method", methodMonitor.method())
@@ -48,4 +44,9 @@ public class MonitorAspect {
                     .register(meterRegistry);
         }
     }
+
+    @Pointcut("execution(* com.yogendra.controller.*.*())")
+    public void controllerMethod() {
+    }
+
 }
